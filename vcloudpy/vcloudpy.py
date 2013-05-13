@@ -15,6 +15,7 @@
 #########################################################################
 
 import urllib2
+import httplib
 import base64
 import re
 
