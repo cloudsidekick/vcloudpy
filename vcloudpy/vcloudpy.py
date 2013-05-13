@@ -24,6 +24,58 @@ try:
 except (AttributeError, ImportError):
     import xml.etree.ElementTree as ET
 
+def get_node_values(xml, path, attribs=[], elems=[], other=""):
+    """Given an xml string and path, returns a list of dictionary objects.
+
+    Arguments:
+    xml -- a string of properly formatted xml
+    path -- an Xpath path. 
+            See http://docs.python.org/2/library/xml.etree.elementtree.html#supported-xpath-syntax
+    attribs -- an optional list of xml node attribute names to retrieve the values for. 
+            "*" will retrieve all attributes per node found.
+    elems -- an optional list of xml child elements to retrieve the text value for.
+            "*" will retrieve all child elements per node found.
+    other -- if the attribute or element is not found, return this value (e.g. "" or None)
+
+    Example:
+    
+    print get_node_values(z, "./NetworkConnection", elems=["MACAddress", "IpAddress"], 
+        attribs=["network", "needsCustomization", "aaaaaaaa"], other=None)
+
+    Might return a list of two interfaces with the following dictionary values:
+
+    [{'needsCustomization': 'false', 'aaaaaaaa': None, 'IpAddress': '212.54.150.58', 'network': 'Direct Internet connection', 'MACAddress': '00:50:56:01:02:eb'}, {'needsCustomization': 'false', 'aaaaaaaa': None, 'IpAddress': '212.54.150.82', 'network': 'Direct Internet connection', 'MACAddress': '00:50:56:01:02:e7'}]
+    """
+
+    result = []
+    root = ET.fromstring(xml)
+    if not path.startswith("./"):
+        path = "./" + path
+    nodes = root.findall(path)
+
+    for n in nodes:
+        node_result = {}
+        if "*" in attribs:
+            node_result = n.attrib
+            # we don't care about the rest of the list, move on to elems
+        else:
+            for a in attribs:
+                if a in n.attrib.keys():
+                    node_result[a] = n.attrib.get(a)
+                else:
+                    node_result[a] = other
+        if "*" in elems:
+            for e in n:
+                node_result[e.tag] = e.text
+                # we don't care about the rest of the list, move on to the next node
+        else:
+            for e in elems:
+                node_result[e] = n.findtext(e, other)
+        result.append(node_result)
+    del(root)
+    # don't forget: result will be a list, empty if path is not found
+    return result 
+
 class VCloudConn():
     """Example:
     conn = vcloudpy.VCloudConn(user, password, endpoint, debug=True)
@@ -140,60 +192,6 @@ class VCloudConn():
 
         full_url = self.base_url + "/" + method
         return self._make_request(full_url, verb)
-
-
-
-    def get_node_values(self, xml, path, attribs=[], elems=[], other=""):
-        """Given an xml string and path, returns a list of dictionary objects.
-
-        Arguments:
-        xml -- a string of properly formatted xml
-        path -- an Xpath path. 
-                See http://docs.python.org/2/library/xml.etree.elementtree.html#supported-xpath-syntax
-        attribs -- an optional list of xml node attribute names to retrieve the values for. 
-                "*" will retrieve all attributes per node found.
-        elems -- an optional list of xml child elements to retrieve the text value for.
-                "*" will retrieve all child elements per node found.
-        other -- if the attribute or element is not found, return this value (e.g. "" or None)
-
-        Example:
-        
-        print conn.get_node_values(z, "./NetworkConnection", elems=["MACAddress", "IpAddress"], 
-            attribs=["network", "needsCustomization", "aaaaaaaa"], other=None)
-
-        Might return a list of two interfaces with the following dictionary values:
-
-        [{'needsCustomization': 'false', 'aaaaaaaa': None, 'IpAddress': '212.54.150.58', 'network': 'Direct Internet connection', 'MACAddress': '00:50:56:01:02:eb'}, {'needsCustomization': 'false', 'aaaaaaaa': None, 'IpAddress': '212.54.150.82', 'network': 'Direct Internet connection', 'MACAddress': '00:50:56:01:02:e7'}]
-        """
-
-        result = []
-        root = ET.fromstring(xml)
-        if not path.startswith("./"):
-            path = "./" + path
-        nodes = root.findall(path)
-
-        for n in nodes:
-            node_result = {}
-            if "*" in attribs:
-                node_result = n.attrib
-                # we don't care about the rest of the list, move on to elems
-            else:
-                for a in attribs:
-                    if a in n.attrib.keys():
-                        node_result[a] = n.attrib.get(a)
-                    else:
-                        node_result[a] = other
-            if "*" in elems:
-                for e in n:
-                    node_result[e.tag] = e.text
-                    # we don't care about the rest of the list, move on to the next node
-            else:
-                for e in elems:
-                    node_result[e] = n.findtext(e, other)
-            result.append(node_result)
-        del(root)
-        # don't forget: result will be a list, empty if path is not found
-        return result 
 
 
     #def get_node_attribs(self, path, xml):
