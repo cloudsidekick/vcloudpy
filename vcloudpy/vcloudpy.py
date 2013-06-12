@@ -81,7 +81,7 @@ class VCloudConn():
     conn = vcloudpy.VCloudConn(user, password, endpoint, debug=True)
     """
 
-    def __init__(self, user, password, endpoint, protocol="https", api_version="5.1", 
+    def __init__(self, user, password, endpoint, protocol="https", api_version=None, 
         path="/api", timeout=10, debug=False):
         """Initiallizes the VCloudConn class.
 
@@ -110,6 +110,8 @@ class VCloudConn():
     def _login(self, user, password):
         """Handles login duties, retrieves authorization token"""
 
+        if self.api_version is None:
+            self.api_version = self._determine_version(self.base_url + "/versions")
         auth_url = self.base_url + "/sessions"
         req = urllib2.Request(auth_url)
         #auth = "Basic " + base64.urlsafe_b64encode("%s:%s" % (self.user, self.password))
@@ -134,6 +136,20 @@ class VCloudConn():
             raise Exception(e)
 
         return xml
+
+    def _determine_version(self, url):
+
+        req = urllib2.Request(url)
+        response = self._send_request(req)
+        xml = self._xml_del_ns(response.read())
+        versions = get_node_values(xml, "VersionInfo", elems=["Version"])
+        lv = []
+        for v in versions:
+            lv.append(v["Version"])
+        lv.sort()
+        lv.reverse()
+        return lv[0] 
+            
 
 
     def _make_request(self, url, verb, data=None, type=None):
