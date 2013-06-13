@@ -24,6 +24,12 @@ try:
 except (AttributeError, ImportError):
     import xml.etree.ElementTree as ET
 
+try:
+    ET.ElementTree.iterfind
+except AttributeError as ex:
+    del(ET)
+    import etree.ElementTree as ET
+
 def get_node_values(xml, path, attribs=[], elems=[], other=""):
     """Given an xml string and path, returns a list of dictionary objects.
 
