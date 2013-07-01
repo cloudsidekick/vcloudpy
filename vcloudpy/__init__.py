@@ -1,5 +1,5 @@
 #########################################################################
-# Copyright 2013 Cloud Sidekick
+# Copyright 2012 Cloud Sidekick
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -14,4 +14,4 @@
 # limitations under the License.
 #########################################################################
 
-__version__='0.1'
+__version__='0.2'

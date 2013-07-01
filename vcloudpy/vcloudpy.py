@@ -18,6 +18,7 @@ import urllib2
 import httplib
 import base64
 import re
+import time
 
 try:
     import xml.etree.cElementTree as ET
@@ -87,7 +88,7 @@ class VCloudConn():
     conn = vcloudpy.VCloudConn(user, password, endpoint, debug=True)
     """
 
-    def __init__(self, user, password, endpoint, protocol="https", api_version=None, 
+    def __init__(self, user, password, endpoint, protocol="https", api_version="1.5", 
         path="/api", timeout=10, debug=False):
         """Initiallizes the VCloudConn class.
 
@@ -120,7 +121,6 @@ class VCloudConn():
             self.api_version = self._determine_version(self.base_url + "/versions")
         auth_url = self.base_url + "/sessions"
         req = urllib2.Request(auth_url)
-        #auth = "Basic " + base64.urlsafe_b64encode("%s:%s" % (self.user, self.password))
         auth = "Basic " + base64.urlsafe_b64encode("%s:%s" % (user, password))
         req.add_header("Authorization", auth)
         req.get_method = lambda: "POST"
@@ -161,6 +161,7 @@ class VCloudConn():
     def _make_request(self, url, verb, data=None, type=None):
         """Constructs the vCloud api request to send"""
 
+        url = url.replace(" ", "+")
         req = urllib2.Request(url)
         req.add_header("x-vcloud-authorization", self.auth_token)
         if type:
@@ -176,23 +177,40 @@ class VCloudConn():
         """Sends the request and handles errors"""
 
         req.add_header("Accept", "application/*+xml;version=%s" % self.api_version)
-        # this should probably be in a incremental backoff loop if it times-out or certain error code returned
-        try:
-            response = urllib2.urlopen(req, timeout=self.timeout)
-        except urllib2.HTTPError, e:
-            raise Exception("HTTPError = %s, %s, %s\n%s" % (str(e.code), e.msg, e.read(), req.get_full_url()))
-        except urllib2.URLError, e:
-            raise Exception("URLError = %s\n%s" % (str(e.reason), req.get_full_url()))
-        except httplib.HTTPException, e:
-            raise Exception("HTTPException")
-        except Exception:
-            import traceback
-            raise Exception("generic exception: " + traceback.format_exc())
+        if self.debug:
+            print("vCloud api version being used: %s" % (self.api_version))
+        reattempt = True
+        attempt = 1
+        reattempt_http_codes = [401]
+        delay = 1
+        attempts_allowed = 10
+        
+        while reattempt is True and attempt <= attempts_allowed:
+            try:
+                response = urllib2.urlopen(req, timeout=self.timeout)
+            except urllib2.HTTPError, e:
+                if e.code in reattempt_http_codes and attempt < attempts_allowed:
+                    print("HTTPError, will reattempt = %s, %s, %s\n%s" % (str(e.code), e.msg, e.read(), req.get_full_url()))
+                    attempt += 1
+                    time.sleep(delay)
+                    continue
+                else:
+                    raise Exception("HTTPError = %s, %s, %s\n%s" % (str(e.code), e.msg, e.read(), req.get_full_url()))
+            except urllib2.URLError, e:
+                raise Exception("URLError = %s\n%s" % (str(e.reason), req.get_full_url()))
+            except httplib.HTTPException, e:
+                raise Exception("HTTPException")
+            except Exception:
+                import traceback
+                raise Exception("generic exception: " + traceback.format_exc())
+            else:
+                # got here, request was successful, break out
+                reattempt = False
 
         if self.debug:
-            print response.info()
+            print(response.info())
             r = response.read()
-            print r
+            print(r)
 
         return response
 
@@ -214,30 +232,5 @@ class VCloudConn():
 
         full_url = self.base_url + "/" + method
         return self._make_request(full_url, verb)
-
-
-    #def get_node_attribs(self, path, xml):
-
-    #    result = []
-    #    root = ET.fromstring(xml)
-    #    if not path.startswith("./"):
-    #        path = "./" + path
-    #    nodes = root.findall(path)
-    #    for n in nodes:
-    #        result.append(n.attrib)
-    #    del(root)
-    #    return result 
-
-
-    #def get_node_elements(self, xml, *args):
-
-    #    return_list = []
-    #    root = ET.fromstring(xml)
-    #    for node in args:
-    #        if not node.startswith("./"):
-    #            node = "./" + node
-    #        return_list.append(root.findtext(node, ""))
-    #    del(root)
-    #    return return_list
 
 
