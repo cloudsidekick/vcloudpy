@@ -89,7 +89,7 @@ class VCloudConn():
     """
 
     def __init__(self, user, password, endpoint, protocol="https", api_version="1.5", 
-        path="/api", timeout=10, debug=False):
+        path="/api", timeout=30, debug=False):
         """Initiallizes the VCloudConn class.
 
         Will automatically use parameters and establish connection to vCloud endpoint.
@@ -101,7 +101,7 @@ class VCloudConn():
         protocol -- optional, http or https (default), most likely https
         api_version -- optional, usually either 5.1 (default) or 1.5
         path -- optional, api uri path, most likely don't change
-        timeout -- optional, timeout in seconds for all http connections with vCloud, default 10
+        timeout -- optional, timeout in seconds for all http connections with vCloud, default 30
         debug -- optional, prints html responses from vCloud, True or False (default)
         """
         
