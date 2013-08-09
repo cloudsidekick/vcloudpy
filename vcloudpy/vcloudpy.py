@@ -158,7 +158,7 @@ class VCloudConn():
             
 
 
-    def _make_request(self, url, verb, data=None, type=None):
+    def _make_request(self, url, verb, data=None, type=None, timeout=None):
         """Constructs the vCloud api request to send"""
 
         url = url.replace(" ", "+")
@@ -169,11 +169,11 @@ class VCloudConn():
         req.get_method = lambda: verb
         if data:
             req.add_data(data)
-        response = self._send_request(req)
+        response = self._send_request(req, timeout=timeout)
         # out of laziness, we will strip the namespaces to make xpath work worry free
         return self._xml_del_ns(response.read())
 
-    def _send_request(self, req):
+    def _send_request(self, req, timeout=None):
         """Sends the request and handles errors"""
 
         req.add_header("Accept", "application/*+xml;version=%s" % self.api_version)
@@ -184,10 +184,11 @@ class VCloudConn():
         reattempt_http_codes = [401]
         delay = 1
         attempts_allowed = 10
-        
+        if not timeout:
+            timeout = self.timeout 
         while reattempt is True and attempt <= attempts_allowed:
             try:
-                response = urllib2.urlopen(req, timeout=self.timeout)
+                response = urllib2.urlopen(req, timeout=timeout)
             except urllib2.HTTPError, e:
                 if e.code in reattempt_http_codes and attempt < attempts_allowed:
                     print("HTTPError, will reattempt = %s, %s, %s\n%s" % (str(e.code), e.msg, e.read(), req.get_full_url()))
@@ -222,15 +223,15 @@ class VCloudConn():
         self.auth_token = None
 
 
-    def make_href_request_path(self, href, verb="GET", data=None, type=None):
+    def make_href_request_path(self, href, verb="GET", data=None, type=None, timeout=None):
         """Used to retrieve an object using a full path"""
 
-        return self._make_request(href, verb, data, type)
+        return self._make_request(href, verb, data, type, timeout=timeout)
 
-    def make_method_request(self, method, verb="GET"):
+    def make_method_request(self, method, verb="GET", timeout=None):
         """Used to make a method request."""
 
         full_url = self.base_url + "/" + method
-        return self._make_request(full_url, verb)
+        return self._make_request(full_url, verb, timeout=timeout)
 
 
