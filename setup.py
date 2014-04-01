@@ -21,7 +21,7 @@ from vcloudpy import __version__
 
 setuptools.setup(
     name='vcloudpy',
-    version=__version__
+    version=__version__,
     description='vCloud Python Simple Client',
     license='Apache License (2.0)',
     author='Patrick Dunnigan',
