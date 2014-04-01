@@ -31,6 +31,24 @@ except AttributeError as ex:
     del(ET)
     import etree.ElementTree as ET
 
+      
+def _xml_del_ns(xml):
+    """A helper function that strips vcloud namespaces from xml text.
+    This is used because sometimes the vcloud namespace is used, other 
+    times it is not. Befuddling.""" 
+
+    try:
+        p = re.compile("xmlns=*[\"\"][^\"\"]*[\"\"]")
+        allmatches = p.finditer(xml)
+        for match in allmatches:
+            xml = xml.replace(match.group(), "")
+    except Exception as e:
+        raise Exception(e)
+    if "xmlns:vcloud" in xml:
+        xml = xml.replace("vcloud:", "")
+    xml = xml.replace(" xmlns:vcloud=\"http://www.vmware.com/vcloud/v1.5\"", "")
+    return xml
+
 def get_node_values(xml, path, attribs=[], elems=[], other=""):
     """Given an xml string and path, returns a list of dictionary objects.
 
@@ -55,7 +73,7 @@ def get_node_values(xml, path, attribs=[], elems=[], other=""):
     """
 
     result = []
-    root = ET.fromstring(xml)
+    root = ET.fromstring(_xml_del_ns(xml))
     if not path.startswith("./"):
         path = "./" + path
     nodes = root.findall(path)
@@ -130,24 +148,11 @@ class VCloudConn():
         self.auth_token = result.info().getheader("x-vcloud-authorization")
 
       
-    def _xml_del_ns(self, xml):
-        """A helper function that strips namespaces from xml text""" 
-
-        try:
-            p = re.compile("xmlns=*[\"\"][^\"\"]*[\"\"]")
-            allmatches = p.finditer(xml)
-            for match in allmatches:
-                xml = xml.replace(match.group(), "")
-        except Exception as e:
-            raise Exception(e)
-
-        return xml
-
     def _determine_version(self, url):
 
         req = urllib2.Request(url)
         response = self._send_request(req)
-        xml = self._xml_del_ns(response.read())
+        xml = _xml_del_ns(response.read())
         versions = get_node_values(xml, "VersionInfo", elems=["Version"])
         lv = []
         for v in versions:
@@ -170,8 +175,7 @@ class VCloudConn():
         if data:
             req.add_data(data)
         response = self._send_request(req, timeout=timeout)
-        # out of laziness, we will strip the namespaces to make xpath work worry free
-        return self._xml_del_ns(response.read())
+        return response.read()
 
     def _send_request(self, req, timeout=None):
         """Sends the request and handles errors"""
