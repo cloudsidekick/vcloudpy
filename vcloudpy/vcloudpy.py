@@ -203,8 +203,30 @@ class VCloudConn():
                     raise Exception("HTTPError = %s, %s, %s\n%s" % (str(e.code), e.msg, e.read(), req.get_full_url()))
             except urllib2.URLError, e:
                 raise Exception("URLError = %s\n%s" % (str(e.reason), req.get_full_url()))
+            except httplib.NotConnected, e:
+                raise e
+            except httplib.InvalidURL, e:
+                raise e
+            except httplib.UnknownProtocol, e:
+                raise e
+            except httplib.UnknownTransferEncoding, e:
+                raise e
+            except httplib.UnimplementedFileMode, e:
+                raise e
+            except httplib.IncompleteRead, e:
+                raise e
+            except httplib.ImproperConnectionState, e:
+                raise e
+            except httplib.BadStatusLine, e:
+                raise e
+            except httplib.CannotSendRequest, e:
+                raise e
+            except httplib.CannotSendHeader, e:
+                raise e
+            except httplib.ResponseNotReady, e:
+                raise e
             except httplib.HTTPException, e:
-                raise Exception("HTTPException")
+                raise e
             except Exception:
                 import traceback
                 raise Exception("generic exception: " + traceback.format_exc())
