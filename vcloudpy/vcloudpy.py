@@ -218,7 +218,8 @@ class VCloudConn():
             except httplib.ImproperConnectionState, e:
                 raise e
             except httplib.BadStatusLine, e:
-                raise e
+                print req.get_full_url()
+                raise Exception("BadStatusLine: The server responded with an unknown status or an empty response.  Possible causes: request was 'https' but the server is 'http', or vice versa.\n%s" % (str(e)))
             except httplib.CannotSendRequest, e:
                 raise e
             except httplib.CannotSendHeader, e:
